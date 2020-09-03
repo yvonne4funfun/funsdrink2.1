@@ -11,72 +11,81 @@ class showTableViewController: UITableViewController {
     
     var ListArray = [List]()
     var OrderList:[List]=[]
+    var downloadData:[Download] = []
+
     
     @IBAction func unwindToShow(_ unwindSegue: UIStoryboardSegue) {
         if let sourceViewController = unwindSegue.source as? editTableViewController,
-           let orderOneDrink = sourceViewController.orderList{
+            let drinkData = sourceViewController.download {
             
             if let indexPath = tableView.indexPathForSelectedRow{
+                downloadData[indexPath.row] = drinkData
+                tableView.reloadRows(at: [indexPath], with: .automatic)
                 
-                OrderList[indexPath.row] = orderOneDrink
-                tableView.reloadRows(at: [indexPath], with: .automatic)}
-            else{
-                    OrderList.insert(orderOneDrink, at: 0)
-                    let indexPath = IndexPath(row: 0, section: 0)
-                    tableView.insertRows(at: [indexPath], with:.automatic )
-          
-            
+            }else{
+            downloadData.insert(drinkData, at: 0)
+            let index = IndexPath(row: 0, section: 0)
+            tableView.insertRows(at: [index], with: .automatic)
         }
-        // Use data from the view controller which initiated the unwind segue
         }
+        
     }
-
 
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+
 
     }
     
         override func viewDidAppear(_ animated: Bool) {
+            download()
         self.tableView.reloadData()
-            getOrderList()
 
         }
+ 
     
-    
-    
-    
-    
-    
-    //取得sheetDB訂單資料
-    func getOrderList(){
-                let urlStr = "https://sheetdb.io/api/v1/u2r459ric9akb".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-                // 將網址轉換成URL編碼（Percent-Encoding）
-                let url = URL(string: urlStr!) // 將字串轉換成url
-                
-                // 背景抓取飲料訂單資料
-                let task = URLSession.shared.dataTask(with: url!) { (data, response, error) in
-                    if let data = data, let content = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [[String: Any]]{
-                        // 因為資料的Json的格式為陣列（Array）包物件（Object），所以[[String: Any]]
-                        
-                        for order in content {
-                            if let data = List(json: order){
-                                self.ListArray.append(data)
-                            }
-                        }
+    //刪除上傳的資料
+    func deleteOrderDetail(order: Download, completionHandler: @escaping(String) -> Void) {
+        
+        var updateUrlString = "https://sheetdb.io/api/v1/u2r459ric9akb"
+               //在api後面加上欄位跟值
+                updateUrlString += ("/name/\(order.name)")
+               if let urlString = updateUrlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),let url = URL(string: urlString) {
+                   var request = URLRequest(url: url)
+                //設定HTTP方法為deleted
+                   request.httpMethod = "DELETE"
+                   request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-                        
-                        // 更新TableView，UI的更新必須在Main thread
-                        DispatchQueue.main.async {
-                            
-                            self.tableView.reloadData() // 更新訂購表
-                           
-                        }
-                    }
+                let orderdata = ForDownloadData(fordata:order)
+                let jsonencoder = JSONEncoder()
+                if let data = try? jsonencoder.encode(orderdata){
+                    let task = URLSession.shared.dataTask(with: request) { (returnData, response, error) in
+                        let decoder = JSONDecoder()
+                        if let returnData = returnData, let dictionary = try? decoder.decode([String: Int].self, from: returnData), dictionary["deleted"] == 1{
+                                         print("Delete successfully")
+                                         completionHandler("刪除成功")
+                                     }else{
+                                         print("Delete failed")
+                                         completionHandler("刪除失敗")
+                                     }
+                                 }
+                    task.resume()
+                }else{
+                    completionHandler("刪除失敗")
+
                 }
-                task.resume() // 開始在背景下載資料
-    }
+                
+                                    
+                                }
+                            }
+    
+    
+  
+    
+    
+
 
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
@@ -88,46 +97,56 @@ class showTableViewController: UITableViewController {
     // MARK: - Table view data source
     //設定section跟row,row就是有幾杯飲料就有幾個
     
-    //numberOfSections可用來限制使用數量故可省略因飲料杯數會一直增加
+    //因為Static Cells由 Storyboard來控制Cell的數量，不需從程式控制，如不註解，則會因為回傳0，則無法顯示商品列表，變成一片空白。
     //override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
-        //return 0}
-    //每一組有幾個 cell
+      //  return 0}
     
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return ListArray.count+1
+        return downloadData.count+1
         //因有多設一個section來算總杯數＆總價格
     }
 
     //每個 cell 要顯示的內容
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if ListArray.count - indexPath.row != 0{
+        if downloadData.count - indexPath.row != 0 {
             //如果飲料杯數－row代表有幾行（indexpath包含兩個信息參數第幾區section、第幾行row）不等於0[表示已經有飲料訂單]
-            let information = ListArray[indexPath.row]
+            let information = downloadData[indexPath.row]
             //設一常數代表飲料共有幾杯（row共有幾行）
+            print(information)
              let cell = tableView.dequeueReusableCell(withIdentifier: "showCell", for: indexPath) as! showTableViewCell
             //讓cell轉型並讀取到“showCell”的內容
             DispatchQueue.main.async {
                 cell.orderName.text = information.name
                 cell.orderDrink.text = information.drink
+                cell.orderPrice.text = "\(information.price)"
+                cell.orderIce.text = information.ice
+                cell.orderSugar.text = information.sugar
+                cell.orderTime.text = information.date
+                cell.orderCup.text = information.size
+                cell.orderTime.text = information.date
+                
             }
             return cell
         }
         else{
             let cell = tableView.dequeueReusableCell(withIdentifier: "totalCell", for: indexPath) as! SumTableViewCell
             //同時讓cell轉型並讀取到“totalCell”的內容
-            if ListArray.count != 0{
+            if downloadData.count != 0 {
                 //若有飲料杯數
+                print(downloadData.count)
                 var total = 0
                 //設一變數total來算總和
-                for ListArray in ListArray{
-                   total = total + ListArray.price
+                for order in downloadData{
+                    total += Int(order.price)!
+                    //因為取下來的值是String所以要轉乘Int()!才能做加減
+                    print(total)
                 }//寫訂單的迴圈，讓飲料總價格自動相加
                 cell.sumPrice.isHidden = false
                 cell.sumPrice.text = "總金額＄\(total)元"
-                cell.sumCups.text = "總杯數\(ListArray.count)杯"
+                cell.sumCups.text = "總杯數\(downloadData.count)杯"
             }else{
                 cell.sumPrice.isHidden = true
                 cell.sumCups.text = "目前沒有訂單"
@@ -136,10 +155,72 @@ class showTableViewController: UITableViewController {
         }
     }
     
-    
+    //用didSelectRowAt indexPath選到Row去修改cell資料
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         performSegue(withIdentifier: "showedit", sender: indexPath)
+        
+        
     }
+    
+    func download(){
+            if let url = URL(string: "https://sheetdb.io/api/v1/u2r459ric9akb"){
+                let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
+                    let decoder = JSONDecoder()
+                   
+                    if let data = data {
+                        do {
+                            let drinkData = try decoder.decode([Download].self, from: data)
+                                for i in 0...drinkData.count - 1 {
+                                    let date = drinkData[i].date
+                                    let name = drinkData[i].name
+                                    let drink = drinkData[i].drink
+                                    let size = drinkData[i].size
+                                    let price = drinkData[i].price
+                                    let sugar = drinkData[i].sugar
+                                    let ice = drinkData[i].ice
+                                    let oneOrder = Download(date: date, name: name, drink: drink, size: size, price: price, sugar: sugar, ice: ice)
+                                    self.downloadData.append(oneOrder)
+                                    DispatchQueue.main.async {
+                                        self.tableView.reloadData()
+                                    }
+                                }
+                        }
+                        catch{
+                            print(error)
+                        }
+                    }
+                    
+                    print(self.ListArray.count)
+                }
+                task.resume()
+            }
+            
+            
+            
+            
+        }
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     /*
     // Override to support conditional editing of the table view.
@@ -149,17 +230,34 @@ class showTableViewController: UITableViewController {
     }
     */
 
-    /*
+    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
-    }
-    */
+        let order = downloadData[indexPath.row]
+        
+        let controller = UIAlertController(title: "\(order.name):\(order.drink)", message: "確定要刪除這筆訂單嗎？", preferredStyle: .alert)
+        
+        let okAction = UIAlertAction(title: "ok", style: .default) { (_) in
+            self.deleteOrderDetail(order: order) { (msg) in
+                print("\(order.name):\(order.drink) \(msg)")
+            }
+                self.downloadData.remove(at: indexPath.row)
+                self.tableView.deleteRows(at: [indexPath], with: .automatic)
+            }
+            let cancelAction = UIAlertAction(title: "cancel", style: .default, handler: nil)
+            
+        controller.addAction(okAction)
+        controller.addAction(cancelAction)
+            present(controller, animated: true, completion: nil)
+        }
+    
+    
+    
+    
+    
+    
+    
+    
 
     /*
     // Override to support rearranging the table view.
@@ -181,10 +279,19 @@ class showTableViewController: UITableViewController {
     // MARK: - Navigation
     
     // In a storyboard-based application, you will often want to do a little preparation before navigation
-    //override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-   //     if let controller = segue.destination as?  editTableViewController,let row = tableView.indexPathForSelectedRow?.row{
-    //        controller.orderList = OrderList[row]}}
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if let controller = segue.destination as?  editTableViewController,let row = tableView.indexPathForSelectedRow?.row{
+            let download = downloadData[row]
+            controller.download = download
+            //將飲料訂單cell裡的資料存到下一頁的訂購飲料頁面
+            
+        }
+        
+        
+        
+    }
+    
     
 
-
 }
+
