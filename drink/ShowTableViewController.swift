@@ -12,32 +12,21 @@ class showTableViewController: UITableViewController {
     var ListArray = [List]()
     var OrderList:[List]=[]
     var downloadData:[Download] = []
+    var downloadsugue = [Download]()
+    //prepare傳資料的變數
+
 
     
-    @IBAction func unwindToShow(_ unwindSegue: UIStoryboardSegue) {
-        if let sourceViewController = unwindSegue.source as? editTableViewController,
-            let drinkData = sourceViewController.download {
-            
-            if let indexPath = tableView.indexPathForSelectedRow{
-                downloadData[indexPath.row] = drinkData
-                tableView.reloadRows(at: [indexPath], with: .automatic)
-                
-            }else{
-            downloadData.insert(drinkData, at: 0)
-            let index = IndexPath(row: 0, section: 0)
-            tableView.insertRows(at: [index], with: .automatic)
-        }
-        }
-        
-    }
 
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
 
 
     }
+
+    
+    
     
         override func viewDidAppear(_ animated: Bool) {
             download()
@@ -49,7 +38,7 @@ class showTableViewController: UITableViewController {
     //刪除上傳的資料
     func deleteOrderDetail(order: Download, completionHandler: @escaping(String) -> Void) {
         
-        var updateUrlString = "https://sheetdb.io/api/v1/u2r459ric9akb"
+        var updateUrlString = "https://sheetdb.io/api/v1/e5wq4fvw0u56q"
                //在api後面加上欄位跟值
                 updateUrlString += ("/name/\(order.name)")
                if let urlString = updateUrlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),let url = URL(string: urlString) {
@@ -58,7 +47,7 @@ class showTableViewController: UITableViewController {
                    request.httpMethod = "DELETE"
                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-                let orderdata = ForDownloadData(fordata:order)
+                let orderdata = ForDownloadData(fordata:downloadData)
                 let jsonencoder = JSONEncoder()
                 if let data = try? jsonencoder.encode(orderdata){
                     let task = URLSession.shared.dataTask(with: request) { (returnData, response, error) in
@@ -81,6 +70,19 @@ class showTableViewController: UITableViewController {
                                 }
                             }
     
+    func showAlert(title:String,msg:String,handler:((UIAlertAction)->Void)?) {
+        let controller = UIAlertController(title: title, message: msg, preferredStyle: .alert)
+        let okAction = UIAlertAction(title: "OK", style: .default, handler: handler)
+        controller.addAction(okAction)
+    present(controller, animated: true, completion: nil)
+        
+    }
+    
+    
+    
+    
+    
+    
     
   
     
@@ -98,9 +100,9 @@ class showTableViewController: UITableViewController {
     //設定section跟row,row就是有幾杯飲料就有幾個
     
     //因為Static Cells由 Storyboard來控制Cell的數量，不需從程式控制，如不註解，則會因為回傳0，則無法顯示商品列表，變成一片空白。
-    //override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-      //  return 0}
+    override func numberOfSections(in tableView: UITableView) -> Int {
+         //#warning Incomplete implementation, return the number of sections
+        return 1}
     
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -139,8 +141,8 @@ class showTableViewController: UITableViewController {
                 print(downloadData.count)
                 var total = 0
                 //設一變數total來算總和
-                for order in downloadData{
-                    total += Int(order.price)!
+                for downloadData in downloadData{
+                    total += Int(downloadData.price)!
                     //因為取下來的值是String所以要轉乘Int()!才能做加減
                     print(total)
                 }//寫訂單的迴圈，讓飲料總價格自動相加
@@ -155,18 +157,23 @@ class showTableViewController: UITableViewController {
         }
     }
     
+
+    
+   
+    
     //用didSelectRowAt indexPath選到Row去修改cell資料
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "showedit", sender: indexPath)
+        performSegue(withIdentifier: "showeditdata", sender: indexPath)}
+ 
+        //將飲料訂單cell裡的資料存到下一頁的訂購飲料頁面
         
-        
-    }
+    
     
     func download(){
-            if let url = URL(string: "https://sheetdb.io/api/v1/u2r459ric9akb"){
+            if let url = URL(string: "https://sheetdb.io/api/v1/e5wq4fvw0u56q"){
                 let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
                     let decoder = JSONDecoder()
-                   
+                    self.downloadData.removeAll()
                     if let data = data {
                         do {
                             let drinkData = try decoder.decode([Download].self, from: data)
@@ -180,14 +187,18 @@ class showTableViewController: UITableViewController {
                                     let ice = drinkData[i].ice
                                     let oneOrder = Download(date: date, name: name, drink: drink, size: size, price: price, sugar: sugar, ice: ice)
                                     self.downloadData.append(oneOrder)
-                                    DispatchQueue.main.async {
-                                        self.tableView.reloadData()
-                                    }
+                                  
                                 }
+                            self.downloadData.reverse()
+
                         }
                         catch{
                             print(error)
                         }
+                    }
+                    
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()
                     }
                     
                     print(self.ListArray.count)
@@ -238,8 +249,8 @@ class showTableViewController: UITableViewController {
         let controller = UIAlertController(title: "\(order.name):\(order.drink)", message: "確定要刪除這筆訂單嗎？", preferredStyle: .alert)
         
         let okAction = UIAlertAction(title: "ok", style: .default) { (_) in
-            self.deleteOrderDetail(order: order) { (msg) in
-                print("\(order.name):\(order.drink) \(msg)")
+            self.deleteOrderDetail(order: order) { (_) in
+                print("\(order.name):\(order.drink)")
             }
                 self.downloadData.remove(at: indexPath.row)
                 self.tableView.deleteRows(at: [indexPath], with: .automatic)
@@ -249,6 +260,8 @@ class showTableViewController: UITableViewController {
         controller.addAction(okAction)
         controller.addAction(cancelAction)
             present(controller, animated: true, completion: nil)
+       
+        
         }
     
     
@@ -280,9 +293,9 @@ class showTableViewController: UITableViewController {
     
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if let controller = segue.destination as?  editTableViewController,let row = tableView.indexPathForSelectedRow?.row{
+        if let controller = segue.destination as?  EditDataTableViewController,let row = tableView.indexPathForSelectedRow?.row{
             let download = downloadData[row]
-            controller.download = download
+            controller.editorder = download
             //將飲料訂單cell裡的資料存到下一頁的訂購飲料頁面
             
         }
@@ -290,8 +303,6 @@ class showTableViewController: UITableViewController {
         
         
     }
-    
-    
+
 
 }
-

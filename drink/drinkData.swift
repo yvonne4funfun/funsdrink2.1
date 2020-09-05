@@ -52,7 +52,7 @@ struct List:Codable {
 
 struct ForDownloadData:Codable {
     //刪除時用的
-    var fordata : Download
+    var fordata : [Download]
 }
 
 struct Download:Codable {
@@ -63,6 +63,8 @@ struct Download:Codable {
     var price:String
     var sugar:String
     var ice:String
+    
+    
 }
 
 
