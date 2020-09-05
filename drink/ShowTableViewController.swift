@@ -36,20 +36,16 @@ class showTableViewController: UITableViewController {
  
     
     //刪除上傳的資料
-    func deleteOrderDetail(order: Download, completionHandler: @escaping(String) -> Void) {
+    func deleteOrderDetail(name: String, completionHandler: @escaping(String) -> Void) {
         
         var updateUrlString = "https://sheetdb.io/api/v1/e5wq4fvw0u56q"
                //在api後面加上欄位跟值
-                updateUrlString += ("/name/\(order.name)")
+                updateUrlString += ("/name/\(name)")
                if let urlString = updateUrlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),let url = URL(string: urlString) {
                    var request = URLRequest(url: url)
                 //設定HTTP方法為deleted
                    request.httpMethod = "DELETE"
                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-                let orderdata = ForDownloadData(fordata:downloadData)
-                let jsonencoder = JSONEncoder()
-                if let data = try? jsonencoder.encode(orderdata){
                     let task = URLSession.shared.dataTask(with: request) { (returnData, response, error) in
                         let decoder = JSONDecoder()
                         if let returnData = returnData, let dictionary = try? decoder.decode([String: Int].self, from: returnData), dictionary["deleted"] == 1{
@@ -59,16 +55,16 @@ class showTableViewController: UITableViewController {
                                          print("Delete failed")
                                          completionHandler("刪除失敗")
                                      }
-                                 }
-                    task.resume()
-                }else{
-                    completionHandler("刪除失敗")
+                                 
+                    }
+                task.resume()
+                
 
                 }
                 
                                     
                                 }
-                            }
+                            
     
     func showAlert(title:String,msg:String,handler:((UIAlertAction)->Void)?) {
         let controller = UIAlertController(title: title, message: msg, preferredStyle: .alert)
@@ -189,7 +185,6 @@ class showTableViewController: UITableViewController {
                                     self.downloadData.append(oneOrder)
                                   
                                 }
-                            self.downloadData.reverse()
 
                         }
                         catch{
@@ -249,7 +244,7 @@ class showTableViewController: UITableViewController {
         let controller = UIAlertController(title: "\(order.name):\(order.drink)", message: "確定要刪除這筆訂單嗎？", preferredStyle: .alert)
         
         let okAction = UIAlertAction(title: "ok", style: .default) { (_) in
-            self.deleteOrderDetail(order: order) { (_) in
+            self.deleteOrderDetail(name: order.name) { (_) in
                 print("\(order.name):\(order.drink)")
             }
                 self.downloadData.remove(at: indexPath.row)

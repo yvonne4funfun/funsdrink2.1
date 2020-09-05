@@ -15,6 +15,7 @@ class EditDataTableViewController: UITableViewController {
     var downloadData:[Download] = []
 
 
+
     //此變數設定選到的飲料跟價格
 
     //設傳資料的變數
@@ -170,10 +171,10 @@ class EditDataTableViewController: UITableViewController {
                    request.httpMethod = "PUT"
                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-                let orderdata = ForDownloadData(fordata : [order])
+                let ordertoupload = UploadToData(data: [order])
                 
                 let jsonencoder = JSONEncoder()
-                if let data = try? jsonencoder.encode(orderdata){
+                if let data = try? jsonencoder.encode(ordertoupload){
                     let task = URLSession.shared.uploadTask(with: request, from: data) { (returnData, response, error) in
                         let decoder = JSONDecoder()
                         if let returnData = returnData,let dictionary = try? decoder.decode([String: Int].self, from: returnData), dictionary["updated"] == 1{

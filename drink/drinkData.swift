@@ -34,7 +34,7 @@ struct Order: Codable {
 
 
 
-//顯示cell頁面的資訊、訂購表單下載上傳更新刪除
+//上傳更新使用
 struct OrderData:Codable {
     //定義有data參數的型別
     var data : List
@@ -51,9 +51,15 @@ struct List:Codable {
 
 
 struct ForDownloadData:Codable {
-    //刪除時用的
+    //下載網路資料時用的，因為上傳到表單後預設都是String，所以不能和上傳使用一樣的型別
     var fordata : [Download]
 }
+
+//修改資料
+struct UploadToData:Codable {
+    var data:[Download]
+}
+
 
 struct Download:Codable {
     var date:String
@@ -70,10 +76,7 @@ struct Download:Codable {
 
 
 
-//刪除及修改sheetDB資料用的
-struct EditOrder:Encodable {
-    var editdata:List
-}
+
 
 
 
