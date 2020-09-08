@@ -7,24 +7,79 @@
 
 import UIKit
 
-class showTableViewController: UITableViewController {
+class showTableViewController: UITableViewController, UISearchResultsUpdating,UISearchBarDelegate{
+
     
+    let searchResultsController = UITableViewController()
+    var searchController:UISearchController?
     var ListArray = [List]()
     var OrderList:[List]=[]
     var downloadData:[Download] = []
     var downloadsugue = [Download]()
     //prepare傳資料的變數
+    var isShowSearchResult: Bool = false
+    var filteredOrderDetails = [Download]()
 
+
+   
+    //使用者輸入要查詢的
+    func updateSearchResults(for searchController: UISearchController) {
+        if searchController.searchBar.text?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).count == 0 {
+            return
+        }
+        filterDataSource()
+}
+    
+    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+            print(searchBar.text)
+        }
+    
+    func filterDataSource() {
+        filteredOrderDetails = downloadsugue.filter({ (Download) -> Bool in
+            return Download.name.lowercased().range(of: searchController!.searchBar.text!.lowercased()) != nil
+            print(filteredOrderDetails)
+
+        })
+
+        if filteredOrderDetails.count > 0 {
+            print("過濾結果>0")
+            
+            isShowSearchResult = true
+            tableView.separatorStyle = UITableViewCell.SeparatorStyle.init(rawValue: 1)! // 顯示TableView的格線
+        } else {
+            print("過濾結果=0")
+            tableView.separatorStyle = UITableViewCell.SeparatorStyle.none // 移除TableView的格線
+            
+        }
+       tableView.reloadData()
+    }
 
     
 
 
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        //建立搜尋列但還沒有搜尋的功能
+        searchController = UISearchController(searchResultsController: searchResultsController)
+        
+        tableView.tableHeaderView = searchController?.searchBar
+        
+        //實作有搜尋功能
+        searchController?.searchResultsUpdater = self
+        searchController?.searchBar.delegate = self
 
+        
+        //開始下拉更新的功能
+        self.refreshControl?.addTarget(self, action: #selector(self.handleRefresh(refreshControl:)), for: UIControl.Event.valueChanged)
 
     }
-
+    @objc func handleRefresh(refreshControl:UIRefreshControl){
+    self.download()
+    self.tableView.reloadData()
+    refreshControl.endRefreshing()
+    }
     
     
     
@@ -35,35 +90,6 @@ class showTableViewController: UITableViewController {
         }
  
     
-    //刪除上傳的資料
-    func deleteOrderDetail(name: String, completionHandler: @escaping(String) -> Void) {
-        
-        var updateUrlString = "https://sheetdb.io/api/v1/e5wq4fvw0u56q"
-               //在api後面加上欄位跟值
-                updateUrlString += ("/name/\(name)")
-               if let urlString = updateUrlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),let url = URL(string: urlString) {
-                   var request = URLRequest(url: url)
-                //設定HTTP方法為deleted
-                   request.httpMethod = "DELETE"
-                   request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    let task = URLSession.shared.dataTask(with: request) { (returnData, response, error) in
-                        let decoder = JSONDecoder()
-                        if let returnData = returnData, let dictionary = try? decoder.decode([String: Int].self, from: returnData), dictionary["deleted"] == 1{
-                                         print("Delete successfully")
-                                         completionHandler("刪除成功")
-                                     }else{
-                                         print("Delete failed")
-                                         completionHandler("刪除失敗")
-                                     }
-                                 
-                    }
-                task.resume()
-                
-
-                }
-                
-                                    
-                                }
                             
     
     func showAlert(title:String,msg:String,handler:((UIAlertAction)->Void)?) {
@@ -103,8 +129,15 @@ class showTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return downloadData.count+1
-        //因有多設一個section來算總杯數＆總價格
+        if isShowSearchResult {
+            return filteredOrderDetails.count
+                } else {
+                    return downloadData.count+1
+                    //因有多設一個section來算總杯數＆總價格
+                }
+        
+   
+        
     }
 
     //每個 cell 要顯示的內容
@@ -115,17 +148,13 @@ class showTableViewController: UITableViewController {
             //設一常數代表飲料共有幾杯（row共有幾行）
             print(information)
              let cell = tableView.dequeueReusableCell(withIdentifier: "showCell", for: indexPath) as! showTableViewCell
-            //讓cell轉型並讀取到“showCell”的內容
-            DispatchQueue.main.async {
-                cell.orderName.text = information.name
-                cell.orderDrink.text = information.drink
-                cell.orderPrice.text = "\(information.price)"
-                cell.orderIce.text = information.ice
-                cell.orderSugar.text = information.sugar
-                cell.orderTime.text = information.date
-                cell.orderCup.text = information.size
-                cell.orderTime.text = information.date
-                
+                        
+            if isShowSearchResult{
+                cell.configCell(with: filteredOrderDetails, for: cell, at: indexPath.row)
+                print(filteredOrderDetails)
+            }else{
+                cell.configureCell(data: information)
+            
             }
             return cell
         }
@@ -151,6 +180,7 @@ class showTableViewController: UITableViewController {
             }
             return cell
         }
+       
     }
     
 
@@ -159,18 +189,20 @@ class showTableViewController: UITableViewController {
     
     //用didSelectRowAt indexPath選到Row去修改cell資料
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "showeditdata", sender: indexPath)}
- 
+        performSegue(withIdentifier: "showeditdata", sender: indexPath)
         //將飲料訂單cell裡的資料存到下一頁的訂購飲料頁面
+
+    }
+ 
         
     
     
     func download(){
-            if let url = URL(string: "https://sheetdb.io/api/v1/e5wq4fvw0u56q"){
+        if let url = URL(string: UrlRequest.shared.baseUrlString){
                 let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
                     let decoder = JSONDecoder()
                     self.downloadData.removeAll()
-                    if let data = data {
+                    if let data = data{
                         do {
                             let drinkData = try decoder.decode([Download].self, from: data)
                                 for i in 0...drinkData.count - 1 {
@@ -195,9 +227,7 @@ class showTableViewController: UITableViewController {
                     DispatchQueue.main.async {
                         self.tableView.reloadData()
                     }
-                    
-                    print(self.ListArray.count)
-                }
+                                    }
                 task.resume()
             }
             
@@ -244,10 +274,17 @@ class showTableViewController: UITableViewController {
         let controller = UIAlertController(title: "\(order.name):\(order.drink)", message: "確定要刪除這筆訂單嗎？", preferredStyle: .alert)
         
         let okAction = UIAlertAction(title: "ok", style: .default) { (_) in
-            self.deleteOrderDetail(name: order.name) { (_) in
+            
+            self.deleteOrderDetail(name:order.name){ (_) in
                 print("\(order.name):\(order.drink)")
+                DispatchQueue.main.async{
+                    tableView.reloadData()
+                }
+
+                
             }
-                self.downloadData.remove(at: indexPath.row)
+            
+                            self.downloadData.remove(at: indexPath.row)
                 self.tableView.deleteRows(at: [indexPath], with: .automatic)
             }
             let cancelAction = UIAlertAction(title: "cancel", style: .default, handler: nil)
@@ -259,8 +296,34 @@ class showTableViewController: UITableViewController {
         
         }
     
-    
-    
+    //刪除上傳的資料
+    func deleteOrderDetail(name: String, completionHandler: @escaping(String) -> Void) {
+        
+        let deleteUrlString = "\(UrlRequest.shared.baseUrlString)/name/\(name)"
+               //在api後面加上欄位跟值
+               if let urlString = deleteUrlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),let url = URL(string: urlString) {
+                   var request = URLRequest(url: url)
+                //設定HTTP方法為deleted
+                   request.httpMethod = "DELETE"
+                   request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    let task = URLSession.shared.dataTask(with: request) { (returnData, response, error) in
+                        let decoder = JSONDecoder()
+                        if let returnData = returnData, let dictionary = try? decoder.decode([String: Int].self, from: returnData), dictionary["deleted"] == 1{
+                                         print("Delete successfully")
+                                         completionHandler("刪除成功")
+                                     }else{
+                                         print("Delete failed")
+                                         completionHandler("刪除失敗")
+                                     }
+                                 
+                    }
+                task.resume()
+                
+
+                }
+                
+                                    
+                                }
     
     
     

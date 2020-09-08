@@ -1,5 +1,5 @@
 //
-//  page3TableViewController.swift
+//  page1TableViewController.swift
 //  drink
 //
 //  Created by fun on 2020/8/19.
@@ -7,73 +7,67 @@
 
 import UIKit
 
-class page3TableViewController: UITableViewController {
+class page1TableViewController: UITableViewController {
     
     var drinks = [Drink]()
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        if let urlStr = "https://sheetdb.io/api/v1/zpsna7suu2sdv".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ,
-           let url = URL(string: urlStr) {
-            URLSession.shared.dataTask(with: url) { (data, response, error) in
-                
-                
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-               
-                
-                if let data = data{
-                                do{
-                                    let DrinkData = try decoder.decode([Drink].self, from: data)
-                                    print(DrinkData)
-                                    self.drinks = DrinkData
-                                    
-                                    DispatchQueue.main.async {
-                                        self.tableView.reloadData()
-
-                                    }
-
-                                }catch{
-                                    print(error)
-                                }
-                }
-                         }.resume()
-                        }
-                    
+        if let urlStr = "\(UrlRequest.shared.menu1)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+          let url = URL(string: urlStr){
+          URLSession.shared.dataTask(with: url) { (data, response, error) in
+             let decoder = JSONDecoder()
+             decoder.dateDecodingStrategy = .iso8601
             
-
+            
+            
+            if let data = data,let DrinkData = try? decoder.decode([Drink].self, from: data){
+                            self.drinks = DrinkData
+                            
+                            DispatchQueue.main.async {
+                                self.tableView.reloadData()
+                            }
+                        }
+                            
+                            
+                        }.resume()
+                              
+                       }
+                }
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
-    }
-
+    
+       
+    
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
-        return 1
-    }
+        return 1    }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
+        
         return drinks.count
+    
     }
+    
 
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "page3Cell", for: indexPath) as! page3TableViewCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: "page1Cell", for: indexPath) as! page1TableViewCell
         
         let Drink = drinks[indexPath.row]
-        
-        cell.page3Name.text = Drink.name
-        cell.page3Price.text = Drink.price
-        cell.page3City.text = Drink.city
-        cell.page3Ice.text = Drink.recommendIce
-        cell.page3Sugar.text = Drink.recommendSugar
-        cell.page3Detail.text = Drink.detail
+        cell.page1Name.text = Drink.name
+        cell.page1Price.text = Drink.price
+        cell.page1City.text = Drink.city
+        cell.page1Ice.text = Drink.recommendIce
+        cell.page1Sugar.text = Drink.recommendSugar
+        cell.page1Detail.text = Drink.detail
 
         // Configure the cell...
 

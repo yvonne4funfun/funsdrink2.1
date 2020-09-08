@@ -13,7 +13,7 @@ class page2TableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if let urlStr = "https://sheetdb.io/api/v1/8betsucu5qyqu".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+        if let urlStr = "\(UrlRequest.shared.menu2)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
           let url = URL(string: urlStr){
          URLSession.shared.dataTask(with: url) { (data, response, error) in
            

@@ -110,7 +110,7 @@ class EditDataTableViewController: UITableViewController {
     
      func dowmLoadMenu(){
          //下載菜單的資訊
-          if let url = URL(string:"https://sheetdb.io/api/v1/h9wymzqlaytix") {
+        if let url = URL(string: UrlRequest.shared.menuUrlString) {
              let task = URLSession.shared.dataTask(with: url) {  (data, response, error) in
                          let decoder = JSONDecoder()
                          if let data = data {
@@ -162,11 +162,13 @@ class EditDataTableViewController: UITableViewController {
         
         let newData = Download(date: dateData, name: nameData, drink: order, size: sizeData, price: priceData, sugar: sugarData, ice: icedata)
         update(order: newData)
-        
+       
         }
+        
+        
     
     func update(order:Download){
-        let url = URL(string: "https://sheetdb.io/api/v1/e5wq4fvw0u56q/name/\(order.name)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)//在api後面加上欄位跟值
+        let url = URL(string: "\(UrlRequest.shared.baseUrlString)/name/\(order.name)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)//在api後面加上欄位跟值
                 var request = URLRequest(url: url!)
                    request.httpMethod = "PUT"
                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -185,9 +187,8 @@ class EditDataTableViewController: UITableViewController {
                                  }
                     task.resume()
                 }
+    }
                 
-                                    
-                                }
     
         
     
@@ -221,11 +222,7 @@ class EditDataTableViewController: UITableViewController {
         let quarterSugar = "玉釀紅茶"
         //控制"僅無糖"限制
         let sugarFree = ["錫金紅茶","夢幻紅茶"]
-        
-
         let controller = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        
-        
         for drink in orders {
             let action = UIAlertAction(title: drink.orderDrink, style: .default) { [self] (_) in
             sender.setTitleColor(UIColor.black, for: .normal)
@@ -233,8 +230,6 @@ class EditDataTableViewController: UITableViewController {
                 sender.setTitle(selectedDrink.orderDrink, for: .normal)
                 self.editprice.text = "\(selectedDrink.orderPrice)"
                 //點選飲料priceLabel顯示對印的價格
-
-                
                 if name.contains(drink.orderDrink) {
                     self.editSL.setEnabled(false, forSegmentAt: 1)
                     self.editprice.text = "\(selectedDrink.orderPrice)"

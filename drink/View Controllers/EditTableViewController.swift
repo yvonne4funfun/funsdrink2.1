@@ -137,7 +137,7 @@ class EditTableViewController: UITableViewController {
    
     func dowmLoadMenu(){
         //下載菜單的資訊
-         if let url = URL(string:"https://sheetdb.io/api/v1/h9wymzqlaytix") {
+         if let url = URL(string:UrlRequest.shared.menuUrlString) {
             let task = URLSession.shared.dataTask(with: url) { [self] (data, response, error) in
                         let decoder = JSONDecoder()
                         if let data = data {
@@ -280,16 +280,9 @@ class EditTableViewController: UITableViewController {
                 }//若選到這些飲料只有中杯，大杯的segment選項會失效
                 
                 if easyIce.contains(drink.orderDrink) {
-                    self.ice.setEnabled(false, forSegmentAt: 0)
-                    self.ice.setEnabled(false, forSegmentAt: 2)
-                    self.ice.setEnabled(false, forSegmentAt: 3)
-                    self.ice.setEnabled(false, forSegmentAt: 4)
-                    self.priceLabel.text = "\(selectedDrink.orderPrice)"
+                    self.ice.setEnabled(false, forSegmentAt: 1)
                 }else{
-                    self.ice.setEnabled(true, forSegmentAt: 0)
-                    self.ice.setEnabled(true, forSegmentAt: 2)
-                    self.ice.setEnabled(true, forSegmentAt: 3)
-                    self.ice.setEnabled(true, forSegmentAt: 4)
+                    self.ice.setEnabled(true, forSegmentAt: 1)
                 }//若選到這些飲料只有少冰，其他的segment選項會失效
                 
                 
@@ -393,7 +386,7 @@ class EditTableViewController: UITableViewController {
         
         func post(orderData:List){
             //上傳資料對應的data
-            let url = URL(string: "https://sheetdb.io/api/v1/e5wq4fvw0u56q")
+            let url = URL(string: UrlRequest.shared.baseUrlString)
             //設定上傳資料的網址
             var urlRequest = URLRequest(url: url!)
             urlRequest.httpMethod = "POST"
